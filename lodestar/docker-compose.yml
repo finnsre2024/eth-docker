@@ -1,0 +1,49 @@
+services:
+
+  lodestar:
+    image: chainsafe/lodestar:latest
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+    networks:
+      - eth-network
+    ports:
+      # Map the p2p port(9000), REST API port(9596), metrics port(8008)
+      - "${PORT_P2P:-9000}:${PORT_P2P:-9000}/tcp"
+      - "${PORT_P2P:-9000}:${PORT_P2P:-9000}/udp"
+      - "${PORT_API:-9596}:${PORT_API:-9596}"
+      - "${PORT_METRICS:-8008}:${PORT_METRICS:-8008}"
+    environment:
+      - JAVA_OPTS="-Xmx${MAX_MEMORY:-8g}"
+    volumes:
+      - ./data:/data
+    command:
+      - beacon
+      - --dataDir=/data
+      - --rest
+      - --rest.port=${PORT_API}
+      - --rest.address=0.0.0.0
+      - --metrics
+      - --metrics.address=0.0.0.0
+      - --metrics.port=${PORT_METRICS}
+      - --logFile=/data/logs/beacon.log
+      - --logFileLevel=debug
+      - --logFileDailyRotate=5
+      - --execution.urls
+      - ${EE_ENDPOINT}
+      - --jwtSecret=/data/jwtsecret.hex
+      - --suggestedFeeRecipient=${VALIDATORS_FEE_RECIPIENT}
+      - --targetPeers=150
+      - --port=${PORT_P2P:-9000}
+      - --checkpointSyncUrl=${CHECKPOINT:-https://checkpoint-sync.holesky.ethpandaops.io}
+      - --builder
+      - --builder.url=${MEV_REPLY:-http://${NET_GATEWAY}:${PORT_MEV:-18550}}
+      - --network=${NETWORK}
+
+networks:
+  eth-network:
+    name: ${NET_NAME}
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${NET_CIDR}
+          gateway: ${NET_GATEWAY}

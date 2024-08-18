@@ -1,0 +1,37 @@
+version: '3'
+
+services:
+
+  lodestar-validator:
+    image: chainsafe/lodestar:latest
+    restart: unless-stopped
+    user: "${UID:-1000}:${GID:-1000}"
+    networks:
+      - eth-network
+    ports:
+      # Map the metrics port(5064)
+      - "${PORT_METRICS:-5064}:${PORT_METRICS:-5064}"
+    volumes:
+      - ./data:/data
+    command:
+      - validator
+      - --dataDir="/data"
+      - --network="$NETWORK"
+      - --metrics=true
+      - --metrics.address="0.0.0.0"
+      - --metrics.port=${PORT_METRICS}
+      - --beaconNodes="${BEACON_NODE_API_ENDPOINT}"
+      - --suggestedFeeRecipient=${VALIDATORS_FEE_RECIPIENT}
+      - --builder=true
+      - --builder.selection=builderalways
+      - --externalSigner.url=${WEB3SIGNER_ENDPOINT}
+      - --externalSigner.fetch
+
+networks:
+  eth-network:
+    name: ${NET_NAME}
+    driver: bridge
+    ipam:
+      config:
+        - subnet: ${NET_CIDR}
+          gateway: ${NET_GATEWAY}
